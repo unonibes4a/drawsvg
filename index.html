@@ -1,0 +1,1885 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herramienta de Dibujo SVG</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+
+        }
+
+
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 25px;
+            padding: 18px;
+            background: #343a40;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .tool-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tool-btn {
+            padding: 10px 15px;
+            border: none;
+            background-color: #495057;
+            color: #ffffff;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-btn:hover {
+            background-color: #6c757d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .tool-btn.active {
+            background-color: #777777;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+            transform: translateY(0);
+        }
+
+        .color-picker,
+        .stroke-width,
+        .fill-picker,
+        .size-input {
+            border: 1px solid #6c757d;
+            border-radius: 6px;
+            padding: 6px;
+            background: #5a6268;
+            color: #ffffff;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+
+        .color-picker:focus,
+        .stroke-width:focus,
+        .fill-picker:focus,
+        .size-input:focus {
+            border-color: #777777;
+            outline: none;
+        }
+
+        .stroke-width,
+        .size-input {
+            width: 60px;
+            text-align: center;
+        }
+
+        .opacity-slider {
+            width: 80px;
+            height: 25px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #000000;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.8;
+            transition: opacity .2s;
+        }
+
+        .opacity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .opacity-slider::-moz-range-thumb {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        label {
+            font-size: 13px;
+            color: #ffffff;
+            font-weight: 400;
+            margin-right: 5px;
+        }
+
+        .canvas-container {
+            border: 1px solid #2c2c2c;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            min-height: 400px;
+
+            background-color: #343a40;
+        }
+
+        #drawingSVG {
+            display: block;
+            cursor: crosshair;
+            border: 1px solid #e9ecef;
+            background-color: #ffffff;
+        }
+
+
+        .clear-btn {
+            background-color: #777777 !important;
+            color: white !important;
+        }
+
+        .clear-btn:hover {
+            background-color: #a3a3a3 !important;
+        }
+
+        .copy-btn {
+            background-color: #777777 !important;
+            color: white !important;
+        }
+
+        .copy-btn:hover {
+            background-color: #a3a3a3 !important;
+        }
+
+        .download-btn {
+            background-color: #777777 !important;
+            color: white !important;
+        }
+
+        .download-btn:hover {
+            background-color: #a3a3a3 !important;
+        }
+
+        .center-btn {
+            background-color: #777777 !important;
+            color: #333 !important;
+        }
+
+        .center-btn:hover {
+            background-color: #a3a3a3 !important;
+        }
+
+        .adaptive-btn {
+            background-color: #6f42c1 !important;
+            color: white !important;
+        }
+
+        .adaptive-btn:hover {
+            background-color: #5b36a7 !important;
+        }
+
+        .adaptive-btn.active {
+            background-color: #4a2d8a !important;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .layer-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: none;
+            background: rgba(40, 40, 40, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .layer-controls button {
+            background: #5a6268;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin: 3px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: background-color 0.2s;
+        }
+
+        .layer-controls button:hover {
+            background: #6c757d;
+        }
+
+        .element-selected {
+            outline: 2px dashed #007afc;
+            outline-offset: 3px;
+        }
+
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 2000;
+            min-width: 350px;
+        }
+
+        .edit-modal h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .edit-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .edit-form .form-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .edit-form .form-row label {
+            color: #555;
+            font-weight: 500;
+            min-width: 80px;
+        }
+
+        .edit-form .form-row input[type="range"] {
+            flex: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .edit-form .form-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #888888;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .edit-form .form-row input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #777777;
+            cursor: pointer;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .edit-form .form-row input[type="number"],
+        .edit-form .form-row input[type="color"] {
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        .edit-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+        }
+
+        .edit-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .btn-save {
+            background: #3b3b3b;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .modal textarea {
+            width: 100%;
+            height: 300px;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 13px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            resize: vertical;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+
+        .modal button {
+            margin: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .modal .close-btn {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal .close-btn:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+
+        .modal .copy-code-btn {
+            background: #777777;
+            color: white;
+        }
+
+        .modal .copy-code-btn:hover {
+            background: #0069d9;
+            transform: translateY(-1px);
+        }
+
+        .tips {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e9f7ef;
+            border-left: 5px solid #28a745;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .size-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #495057;
+            padding: 8px 12px;
+            border-radius: 8px;
+        }
+
+        .x-label {
+            font-size: 14px;
+            color: #ffffff;
+            margin: 0 2px;
+        }
+
+        .canvas-info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #555;
+            background: #f1f3f5;
+            padding: 8px 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .clbotondvg {
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            align-content: center;
+            justify-content: center;
+            background-color: #ffffff;
+            border: 1px solid #000000;
+            cursor: pointer;
+            -webkit-box-shadow: 1px 1px 18px 8px #A6A6A6; 
+box-shadow: 1px 1px 18px 8px #A6A6A6;
+        }
+        .clbotondvg:hover{
+   border: 2px solid #a8a8a8;
+        }
+    </style>
+</head>
+
+<body>
+
+
+
+    <div class="container">
+
+
+        <div id="idicnobootn" class="clbotondvg" onclick="alert('example   draw svg');">
+
+<svg width="900px" height="900px" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000000"></polygon>
+                    </marker>
+                </defs>
+            <circle stroke="#000000" stroke-width="2" fill="none" cx="208" cy="244" r="82.39690528169125" class=""></circle><rect stroke="#000000" stroke-width="2" fill="none" x="119.5" y="86" width="250" height="22"></rect><rect stroke="#000000" stroke-width="2" fill="none" x="132.5" y="380" width="248" height="25" class="element-selected"></rect><rect stroke="#000000" stroke-width="2" fill="none" x="240.5" y="414" width="0" height="0"></rect>
+</svg>
+          
+
+
+        </div>
+        <h1 style="text-align: center; color: #555; text-shadow: 1px 1px 2px rgba(0,0,0,0.1);"> Tools draw svg</h1>
+
+        <div class="toolbar">
+            <div class="tool-group">
+                <label>Tools:</label>
+                <button class="tool-btn active" data-tool="freehand">Freehand</button>
+                <button class="tool-btn" data-tool="polyline">Polyline</button>
+                <button class="tool-btn" data-tool="rectangle">Rectangle</button>
+                <button class="tool-btn" data-tool="circle">Circle</button>
+                <button class="tool-btn" data-tool="triangle">Triangle</button>
+                <button class="tool-btn" data-tool="hexagon">Hexagon</button>
+                <button class="tool-btn" data-tool="arrow">Arrow</button>
+            </div>
+
+            <div class="tool-group">
+                <label>Stroke Color:</label>
+                <input type="color" class="color-picker" id="strokeColor" value="#000000">
+            </div>
+
+            <div class="tool-group">
+                <label>Fill Color:</label>
+                <input type="color" class="fill-picker" id="fillColor" value="#ffffff">
+                <button class="tool-btn" id="noFill">No Fill</button>
+                <label>Opacity:</label>
+                <input type="range" class="opacity-slider" id="fillOpacity" min="0" max="100" value="0"
+                    title="Fill Opacity">
+                <span id="opacityValue" style="font-size: 10px;">100%</span>
+            </div>
+
+            <div class="tool-group">
+                <label>Thickness:</label>
+                <input type="number" class="stroke-width" id="strokeWidth" min="1" max="20" value="2">
+            </div>
+
+            <div class="tool-group">
+                <label>Export Size:</label>
+                <div class="size-group">
+                    <input type="number" class="size-input" id="exportWidth" min="16" max="1000" value="900"
+                        title="Width in pixels">
+                    <span class="x-label">×</span>
+                    <input type="number" class="size-input" id="exportHeight" min="16" max="100" value="900"
+                        title="Height in pixels">
+                    <span style="font-size: 10px; color: #888;">px</span>
+                </div>
+                <button class="tool-btn" id="adaptiveSize" title="Use adaptive size (100%)"> 100%</button>
+            </div>
+
+            <div class="tool-group">
+                <button class="tool-btn center-btn" id="centerDrawing">Center</button>
+                <button class="tool-btn clear-btn" id="clearCanvas"> Clear</button>
+                <button class="tool-btn copy-btn" id="copySVG"> Copy SVG</button>
+                <button class="tool-btn download-btn" id="downloadSVG"> Download</button>
+            </div>
+        </div>
+
+        <div class="canvas-info">
+            Drawing area: 500 × 500 pixels
+        </div>
+
+        <div class="canvas-container">
+            <svg id="drawingSVG" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#000000" />
+                    </marker>
+                </defs>
+            </svg>
+
+
+            <div id="layerControls" class="layer-controls">
+                <button id="moveToFront">In front</button>
+                <button id="moveToBack">Back</button>
+                <button id="moveUp">Upload</button>
+                <button id="moveDown">Download</button>
+            </div>
+        </div>
+
+
+        <div id="editModal" class="edit-modal">
+            <h3>Edit Element</h3>
+            <div class="edit-form">
+                <div class="form-row">
+                    <label>Stroke Color:</label>
+                    <input type="color" id="editStrokeColor" value="#000000">
+                </div>
+                <div class="form-row">
+                    <label>Fill Color:</label>
+                    <input type="color" id="editFillColor" value="#ffffff">
+                    <label>
+                        <input type="checkbox" id="editNoFill"> No fill
+                    </label>
+                </div>
+                <div class="form-row">
+                    <label>Fill Opacity:</label>
+                    <input type="range" id="editFillOpacity" min="0" max="100" value="100">
+                    <span id="editOpacityValue">100%</span>
+                </div>
+                <div class="form-row">
+                    <label>Thickness:</label>
+                    <input type="number" id="editStrokeWidth" min="1" max="20" value="2">
+                </div>
+            </div>
+            <div class="edit-buttons">
+                <button class="btn-delete" id="deleteElement"> Delete</button>
+                <button class="btn-cancel" id="cancelEdit">Cancel</button>
+                <button class="btn-save" id="saveEdit">Save</button>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="svgModal" class="modal">
+        <div class="modal-content">
+            <h3> SVG Code - Ready for your icon page</h3>
+            <p>Copy this code and use it on your webpage:</p>
+            <textarea id="svgCode" readonly placeholder="The SVG code will appear here..."></textarea>
+            <div>
+                <button class="copy-code-btn" id="copyCodeBtn"> Copy to Clipboard</button>
+                <button class="close-btn" id="closeModal"> Close</button>
+            </div>
+            <div class="tips">
+                <p><strong>Tips for using as an icon:</strong></p>
+                <ul>
+                    <li><strong>Fixed size:</strong> Use exact pixels (e.g., 16x16, 24x24, 32x32, 64x64)</li>
+                    <li><strong>Responsive sizing:</strong> Set to "100%" to fit the parent container</li>
+                    <li>You can add <code>class="icon"</code> to apply CSS styles</li>
+                    <li>To dynamically change colors, use <code>currentColor</code> in stroke and fill</li>
+                    <li>The <code>viewBox</code> allows the icon to scale properly</li>
+                    <li><strong>CSS example:</strong> <code>.icon {width: 24px; height: 24px;}</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script> 
+
+
+
+
+class SVGDrawingTool {
+    constructor() {
+        this.svg = document.getElementById('drawingSVG');
+        this.currentTool = 'freehand';
+        this.isDrawing = false;
+        this.startPoint = null;
+        this.currentElement = null;
+        this.polylinePoints = [];
+        this.freehandPath = '';
+        this.selectedElement = null;
+        this.isDragging = false;
+        this.dragStartPoint = null;
+        this.elementStartPos = null;
+        this.idicnobootn = document.getElementById("idicnobootn");
+        
+        // Elemento copiado para funcionalidad de copiar/pegar
+        this.copiedElement = null;
+        
+        // Sistema de historial para deshacer/rehacer
+        this.history = [];
+        this.historyStep = -1;
+        this.maxHistorySteps = 30;
+        this.isPerformingHistoryAction = false;
+        
+        this.setupEventListeners();
+        this.setupOpacitySlider();
+        this.saveState(); // Guardar estado inicial
+    }
+
+    // Métodos para manejo del historial
+    saveState() {
+        if (this.isPerformingHistoryAction) return;
+        
+        // Remover pasos futuros si estamos en el medio del historial
+        this.history = this.history.slice(0, this.historyStep + 1);
+        
+        // Guardar el estado actual del SVG
+        const svgContent = this.svg.innerHTML;
+        this.history.push(svgContent);
+        
+        // Mantener solo los últimos maxHistorySteps pasos
+        if (this.history.length > this.maxHistorySteps) {
+            this.history.shift();
+        } else {
+            this.historyStep++;
+        }
+        
+        this.updateUndoRedoButtons();
+        console.log('Estado guardado. Historial:', this.history.length, 'Paso actual:', this.historyStep);
+    }
+
+    undo() {
+        if (this.historyStep > 0) {
+            this.historyStep--;
+            this.restoreState(this.history[this.historyStep]);
+            this.updateUndoRedoButtons();
+            console.log('Deshacer ejecutado. Paso actual:', this.historyStep);
+        } else {
+            console.log('No hay más pasos para deshacer');
+        }
+    }
+
+    redo() {
+        if (this.historyStep < this.history.length - 1) {
+            this.historyStep++;
+            this.restoreState(this.history[this.historyStep]);
+            this.updateUndoRedoButtons();
+            console.log('Rehacer ejecutado. Paso actual:', this.historyStep);
+        } else {
+            console.log('No hay más pasos para rehacer');
+        }
+    }
+
+    restoreState(svgContent) {
+        this.isPerformingHistoryAction = true;
+        this.clearSelection();
+        this.svg.innerHTML = svgContent;
+        this.isPerformingHistoryAction = false;
+    }
+
+    updateUndoRedoButtons() {
+        const undoBtn = document.getElementById('undoBtn');
+        const redoBtn = document.getElementById('redoBtn');
+        
+        if (undoBtn) {
+            undoBtn.disabled = this.historyStep <= 0;
+            undoBtn.style.opacity = this.historyStep <= 0 ? '0.5' : '1';
+        }
+        
+        if (redoBtn) {
+            redoBtn.disabled = this.historyStep >= this.history.length - 1;
+            redoBtn.style.opacity = this.historyStep >= this.history.length - 1 ? '0.5' : '1';
+        }
+    }
+
+    // Métodos para copiar y pegar
+    copyElement() {
+        if (this.selectedElement) {
+            // Clonar el elemento seleccionado
+            this.copiedElement = this.selectedElement.cloneNode(true);
+            console.log('Elemento copiado:', this.copiedElement.tagName);
+            
+            // Feedback visual
+            this.showCopyFeedback();
+        } else {
+            console.log('No hay elemento seleccionado para copiar');
+        }
+    }
+
+    pasteElement() {
+        if (this.copiedElement) {
+            // Clonar el elemento copiado para crear una nueva instancia
+            const newElement = this.copiedElement.cloneNode(true);
+            
+            // Remover la clase de selección si existe
+            newElement.classList.remove('element-selected');
+            
+            // Desplazar ligeramente el elemento pegado para que sea visible
+            this.offsetPastedElement(newElement);
+            
+            // Añadir el elemento al SVG
+            this.svg.appendChild(newElement);
+            
+            // Seleccionar el elemento recién pegado
+            this.selectElement(newElement);
+            
+            // Guardar estado
+            this.saveState();
+            
+            console.log('Elemento pegado:', newElement.tagName);
+            
+            // Feedback visual
+            this.showPasteFeedback();
+        } else {
+            console.log('No hay elemento copiado para pegar');
+        }
+    }
+
+    offsetPastedElement(element) {
+        // Desplazar el elemento 20px hacia abajo y derecha para que sea visible
+        const offset = 20;
+        this.moveElement(element, offset, offset);
+    }
+
+    showCopyFeedback() {
+        // Crear feedback visual temporal para copiar
+        const feedback = document.createElement('div');
+        feedback.textContent = 'Elemento copiado (Ctrl+C)';
+        feedback.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        
+        document.body.appendChild(feedback);
+        
+        // Animar entrada
+        setTimeout(() => feedback.style.opacity = '1', 10);
+        
+        // Remover después de 2 segundos
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    document.body.removeChild(feedback);
+                }
+            }, 300);
+        }, 2000);
+    }
+
+    showPasteFeedback() {
+        // Crear feedback visual temporal para pegar
+        const feedback = document.createElement('div');
+        feedback.textContent = 'Elemento pegado (Ctrl+V)';
+        feedback.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2196F3;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            z-index: 10000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        
+        document.body.appendChild(feedback);
+        
+        // Animar entrada
+        setTimeout(() => feedback.style.opacity = '1', 10);
+        
+        // Remover después de 2 segundos
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    document.body.removeChild(feedback);
+                }
+            }, 300);
+        }, 2000);
+    }
+
+    setupOpacitySlider() {
+        const opacitySlider = document.getElementById('fillOpacity');
+        const opacityValue = document.getElementById('opacityValue');
+
+        if (opacitySlider && opacityValue) {
+            opacityValue.textContent = opacitySlider.value + '%';
+
+            opacitySlider.addEventListener('input', (e) => {
+                const value = e.target.value;
+                opacityValue.textContent = value + '%';
+            });
+        }
+    }
+
+    setupEventListeners() {
+        // Eventos de herramientas
+        document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const activeBtn = document.querySelector('.tool-btn.active');
+                if (activeBtn) activeBtn.classList.remove('active');
+                btn.classList.add('active');
+                this.currentTool = btn.dataset.tool;
+                this.finishPolyline();
+                this.clearSelection();
+            });
+        });
+
+        // Botones principales
+        const clearBtn = document.getElementById('clearCanvas');
+        if (clearBtn) clearBtn.addEventListener('click', () => this.clearCanvas());
+
+        const copyBtn = document.getElementById('copySVG');
+        if (copyBtn) copyBtn.addEventListener('click', () => this.showSVGCode());
+
+        const downloadBtn = document.getElementById('downloadSVG');
+        if (downloadBtn) downloadBtn.addEventListener('click', () => this.downloadSVG());
+
+        const centerBtn = document.getElementById('centerDrawing');
+        if (centerBtn) centerBtn.addEventListener('click', () => this.centerDrawing());
+
+        // Botones de deshacer/rehacer
+        const undoBtn = document.getElementById('undoBtn');
+        if (undoBtn) {
+            undoBtn.addEventListener('click', () => this.undo());
+        }
+
+        const redoBtn = document.getElementById('redoBtn');
+        if (redoBtn) {
+            redoBtn.addEventListener('click', () => this.redo());
+        }
+
+        const noFillBtn = document.getElementById('noFill');
+        if (noFillBtn) {
+            noFillBtn.addEventListener('click', () => {
+                const opacitySlider = document.getElementById('fillOpacity');
+                const opacityValue = document.getElementById('opacityValue');
+                if (opacitySlider && opacityValue) {
+                    opacitySlider.value = '0';
+                    opacityValue.textContent = '0%';
+                }
+            });
+        }
+
+        const adaptiveSizeBtn = document.getElementById('adaptiveSize');
+        if (adaptiveSizeBtn) {
+            adaptiveSizeBtn.addEventListener('click', () => {
+                const btn = adaptiveSizeBtn;
+                const widthInput = document.getElementById('exportWidth');
+                const heightInput = document.getElementById('exportHeight');
+
+                if (btn.classList.contains('active')) {
+                    btn.classList.remove('active');
+                    btn.textContent = '100%';
+                    if (widthInput) {
+                        widthInput.disabled = false;
+                        widthInput.style.opacity = '1';
+                    }
+                    if (heightInput) {
+                        heightInput.disabled = false;
+                        heightInput.style.opacity = '1';
+                    }
+                } else {
+                    btn.classList.add('active');
+                    btn.textContent = '100%';
+                    if (widthInput) {
+                        widthInput.disabled = true;
+                        widthInput.style.opacity = '0.5';
+                    }
+                    if (heightInput) {
+                        heightInput.disabled = true;
+                        heightInput.style.opacity = '0.5';
+                    }
+                }
+            });
+        }
+
+        // Botones de capas
+        const moveToFrontBtn = document.getElementById('moveToFront');
+        if (moveToFrontBtn) moveToFrontBtn.addEventListener('click', () => this.moveToFront());
+
+        const moveToBackBtn = document.getElementById('moveToBack');
+        if (moveToBackBtn) moveToBackBtn.addEventListener('click', () => this.moveToBack());
+
+        const moveUpBtn = document.getElementById('moveUp');
+        if (moveUpBtn) moveUpBtn.addEventListener('click', () => this.moveUp());
+
+        const moveDownBtn = document.getElementById('moveDown');
+        if (moveDownBtn) moveDownBtn.addEventListener('click', () => this.moveDown());
+
+        // Botones de edición
+        const saveEditBtn = document.getElementById('saveEdit');
+        if (saveEditBtn) saveEditBtn.addEventListener('click', () => this.saveElementEdit());
+
+        const cancelEditBtn = document.getElementById('cancelEdit');
+        if (cancelEditBtn) cancelEditBtn.addEventListener('click', () => this.closeEditModal());
+
+        const deleteElementBtn = document.getElementById('deleteElement');
+        if (deleteElementBtn) deleteElementBtn.addEventListener('click', () => this.deleteSelectedElement());
+
+        // Sliders de edición
+        const editFillOpacity = document.getElementById('editFillOpacity');
+        if (editFillOpacity) {
+            editFillOpacity.addEventListener('input', (e) => {
+                const opacityValue = document.getElementById('editOpacityValue');
+                if (opacityValue) {
+                    opacityValue.textContent = e.target.value + '%';
+                }
+            });
+        }
+
+        const editNoFill = document.getElementById('editNoFill');
+        if (editNoFill) {
+            editNoFill.addEventListener('change', (e) => {
+                const fillInput = document.getElementById('editFillColor');
+                const opacitySlider = document.getElementById('editFillOpacity');
+                const opacityValue = document.getElementById('editOpacityValue');
+                
+                if (fillInput) fillInput.disabled = e.target.checked;
+                if (e.target.checked && opacitySlider && opacityValue) {
+                    opacitySlider.value = '0';
+                    opacityValue.textContent = '0%';
+                }
+            });
+        }
+
+        // Eventos de modales
+        const closeModalBtn = document.getElementById('closeModal');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => {
+                const modal = document.getElementById('svgModal');
+                if (modal) modal.style.display = 'none';
+            });
+        }
+
+        const copyCodeBtn = document.getElementById('copyCodeBtn');
+        if (copyCodeBtn) {
+            copyCodeBtn.addEventListener('click', () => this.copyToClipboard());
+        }
+
+        const svgModal = document.getElementById('svgModal');
+        if (svgModal) {
+            svgModal.addEventListener('click', (e) => {
+                if (e.target.id === 'svgModal') {
+                    svgModal.style.display = 'none';
+                }
+            });
+        }
+
+        const editModal = document.getElementById('editModal');
+        if (editModal) {
+            editModal.addEventListener('click', (e) => {
+                if (e.target.id === 'editModal') {
+                    this.closeEditModal();
+                }
+            });
+        }
+
+        // Eventos del SVG
+        if (this.svg) {
+            this.svg.addEventListener('mousedown', (e) => this.handleMouseDown(e));
+            this.svg.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+            this.svg.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+            this.svg.addEventListener('dblclick', (e) => this.handleDoubleClick(e));
+            this.svg.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        // EVENTOS DE TECLADO MEJORADOS
+        document.addEventListener('keydown', (e) => {
+            console.log('Tecla presionada:', e.key, 'Ctrl:', e.ctrlKey, 'Shift:', e.shiftKey);
+            
+            // Prevenir comportamientos por defecto en campos de texto
+            const isInInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
+            
+            // Ctrl+Z para deshacer
+            if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                if (!isInInput) {
+                    this.undo();
+                    console.log('Ejecutando deshacer');
+                }
+                return;
+            }
+            
+            // Ctrl+Y o Ctrl+Shift+Z para rehacer
+            if ((e.ctrlKey && e.key.toLowerCase() === 'y') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) {
+                e.preventDefault();
+                if (!isInInput) {
+                    this.redo();
+                    console.log('Ejecutando rehacer');
+                }
+                return;
+            }
+            
+            // Ctrl+C para copiar elemento seleccionado
+            if (e.ctrlKey && e.key.toLowerCase() === 'c') {
+                if (!isInInput && this.selectedElement) {
+                    e.preventDefault();
+                    this.copyElement();
+                    console.log('Ejecutando copiar');
+                }
+                return;
+            }
+            
+            // Ctrl+V para pegar elemento copiado
+            if (e.ctrlKey && e.key.toLowerCase() === 'v') {
+                if (!isInInput && this.copiedElement) {
+                    e.preventDefault();
+                    this.pasteElement();
+                    console.log('Ejecutando pegar');
+                }
+                return;
+            }
+            
+            // Escape para limpiar selección y cerrar modal
+            if (e.key === 'Escape') {
+                this.clearSelection();
+                this.closeEditModal();
+                const svgModal = document.getElementById('svgModal');
+                if (svgModal && svgModal.style.display === 'block') {
+                    svgModal.style.display = 'none';
+                }
+            }
+            
+            // Delete para eliminar elemento seleccionado
+            if (e.key === 'Delete' && this.selectedElement && !isInInput) {
+                e.preventDefault();
+                this.deleteSelectedElement();
+            }
+        });
+        
+        // Agregar estilos CSS para la cruceta y elementos seleccionados
+        this.addCustomStyles();
+    }
+    
+    addCustomStyles() {
+        // Crear estilos CSS personalizados si no existen
+        if (!document.getElementById('svg-drawing-styles')) {
+            const style = document.createElement('style');
+            style.id = 'svg-drawing-styles';
+            style.textContent = `
+                .element-selected {
+                    filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.8));
+                    cursor: move !important;
+                }
+                
+                .element-selected:hover {
+                    filter: drop-shadow(0 0 5px rgba(59, 130, 246, 1));
+                }
+                
+                #drawingSVG {
+                    transition: cursor 0.1s ease;
+                }
+                
+                /* Cursor de cruceta personalizado para mover elementos */
+                .moving-element {
+                    cursor: move !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+
+    handleMouseDown(e) {
+        const pos = this.getMousePos(e);
+        const target = e.target;
+
+        // Si hacemos clic en un elemento dibujable, lo seleccionamos
+        if (target !== this.svg && this.isDrawableElement(target)) {
+            e.preventDefault();
+            console.log('Elemento seleccionado:', target.tagName, target);
+            this.selectElement(target);
+            this.startDragging(pos, target);
+            return;
+        }
+
+        // Si hacemos clic en el área vacía, limpiamos la selección
+        this.clearSelection();
+        this.startPoint = pos;
+
+        if (this.currentTool === 'polyline') {
+            this.addPolylinePoint(pos);
+            return;
+        }
+
+        if (this.currentTool === 'freehand') {
+            this.isDrawing = true;
+            this.startFreehand(pos);
+            return;
+        }
+
+        this.isDrawing = true;
+        this.startShape(pos);
+    }
+
+    handleMouseMove(e) {
+        const pos = this.getMousePos(e);
+
+        if (this.isDragging && this.selectedElement) {
+            this.dragElement(pos);
+            return;
+        }
+
+        if (!this.isDrawing) return;
+
+        if (this.currentTool === 'freehand') {
+            this.continueFreehand(pos);
+        } else {
+            this.updateShape(pos);
+        }
+    }
+
+    handleMouseUp() {
+        if (this.isDragging) {
+            this.stopDragging();
+            this.saveState(); // Guardar estado después de mover elemento
+            return;
+        }
+
+        if (this.currentTool === 'polyline' || !this.isDrawing) return;
+
+        this.isDrawing = false;
+        this.currentElement = null;
+        this.saveState(); // Guardar estado después de crear elemento
+    }
+
+    handleDoubleClick(e) {
+        const target = e.target;
+        if (target !== this.svg && this.isDrawableElement(target)) {
+            e.preventDefault();
+            this.selectElement(target);
+            this.openEditModal(target);
+        }
+    }
+
+    isDrawableElement(element) {
+        return element.tagName && ['rect', 'circle', 'line', 'polygon', 'polyline', 'path'].includes(element.tagName);
+    }
+
+    selectElement(element) {
+        this.clearSelection();
+        this.selectedElement = element;
+        element.classList.add('element-selected');
+        this.showLayerControls();
+    }
+
+    clearSelection() {
+        if (this.selectedElement) {
+            this.selectedElement.classList.remove('element-selected');
+            this.selectedElement = null;
+        }
+        this.hideLayerControls();
+    }
+
+    showLayerControls() {
+        const controls = document.getElementById('layerControls');
+        if (controls) controls.style.display = 'block';
+    }
+
+    hideLayerControls() {
+        const controls = document.getElementById('layerControls');
+        if (controls) controls.style.display = 'none';
+    }
+
+    startDragging(pos, element) {
+        this.isDragging = true;
+        this.dragStartPoint = pos;
+        this.elementStartPos = this.getElementPosition(element);
+    }
+
+    dragElement(pos) {
+        if (!this.selectedElement || !this.dragStartPoint || !this.elementStartPos) return;
+
+        const deltaX = pos.x - this.dragStartPoint.x;
+        const deltaY = pos.y - this.dragStartPoint.y;
+
+        this.moveElementTo(this.selectedElement, this.elementStartPos.x + deltaX, this.elementStartPos.y + deltaY);
+    }
+
+    stopDragging() {
+        this.isDragging = false;
+        this.dragStartPoint = null;
+        this.elementStartPos = null;
+    }
+
+    getElementPosition(element) {
+        switch (element.tagName) {
+            case 'rect':
+                return {
+                    x: parseFloat(element.getAttribute('x') || 0),
+                    y: parseFloat(element.getAttribute('y') || 0)
+                };
+            case 'circle':
+                return {
+                    x: parseFloat(element.getAttribute('cx') || 0),
+                    y: parseFloat(element.getAttribute('cy') || 0)
+                };
+            case 'line':
+                return {
+                    x: parseFloat(element.getAttribute('x1') || 0),
+                    y: parseFloat(element.getAttribute('y1') || 0)
+                };
+            default:
+                return { x: 0, y: 0 };
+        }
+    }
+
+    moveElementTo(element, newX, newY) {
+        const currentPos = this.getElementPosition(element);
+        const deltaX = newX - currentPos.x;
+        const deltaY = newY - currentPos.y;
+        this.moveElement(element, deltaX, deltaY);
+    }
+
+    moveElement(element, deltaX, deltaY) {
+        switch (element.tagName) {
+            case 'rect':
+                const x = parseFloat(element.getAttribute('x') || 0) + deltaX;
+                const y = parseFloat(element.getAttribute('y') || 0) + deltaY;
+                element.setAttribute('x', x);
+                element.setAttribute('y', y);
+                break;
+
+            case 'circle':
+                const cx = parseFloat(element.getAttribute('cx') || 0) + deltaX;
+                const cy = parseFloat(element.getAttribute('cy') || 0) + deltaY;
+                element.setAttribute('cx', cx);
+                element.setAttribute('cy', cy);
+                break;
+
+            case 'line':
+                const x1 = parseFloat(element.getAttribute('x1') || 0) + deltaX;
+                const y1 = parseFloat(element.getAttribute('y1') || 0) + deltaY;
+                const x2 = parseFloat(element.getAttribute('x2') || 0) + deltaX;
+                const y2 = parseFloat(element.getAttribute('y2') || 0) + deltaY;
+                element.setAttribute('x1', x1);
+                element.setAttribute('y1', y1);
+                element.setAttribute('x2', x2);
+                element.setAttribute('y2', y2);
+                break;
+
+            case 'polygon':
+            case 'polyline':
+                const points = element.getAttribute('points');
+                if (points) {
+                    const newPoints = points.split(' ').map(point => {
+                        const [px, py] = point.split(',').map(Number);
+                        return `${px + deltaX},${py + deltaY}`;
+                    }).join(' ');
+                    element.setAttribute('points', newPoints);
+                }
+                break;
+
+            case 'path':
+                break;
+        }
+    }
+
+    openEditModal(element) {
+        const modal = document.getElementById('editModal');
+        if (!modal) return;
+
+        const strokeColor = document.getElementById('editStrokeColor');
+        const fillColor = document.getElementById('editFillColor');
+        const strokeWidth = document.getElementById('editStrokeWidth');
+        const fillOpacity = document.getElementById('editFillOpacity');
+        const opacityValue = document.getElementById('editOpacityValue');
+        const noFill = document.getElementById('editNoFill');
+
+        if (strokeColor) strokeColor.value = element.getAttribute('stroke') || '#000000';
+        if (fillColor) fillColor.value = element.getAttribute('fill') || '#ffffff';
+        if (strokeWidth) strokeWidth.value = element.getAttribute('stroke-width') || '2';
+
+        const opacity = element.getAttribute('fill-opacity') || '1';
+        const opacityPercent = Math.round(parseFloat(opacity) * 100);
+        
+        if (fillOpacity) fillOpacity.value = opacityPercent;
+        if (opacityValue) opacityValue.textContent = opacityPercent + '%';
+
+        const isNoFill = element.getAttribute('fill') === 'none' || opacityPercent === 0;
+        if (noFill) noFill.checked = isNoFill;
+        if (fillColor) fillColor.disabled = isNoFill;
+
+        modal.style.display = 'block';
+    }
+
+    closeEditModal() {
+        const modal = document.getElementById('editModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    saveElementEdit() {
+        if (!this.selectedElement) return;
+
+        const strokeColor = document.getElementById('editStrokeColor');
+        const fillColor = document.getElementById('editFillColor');
+        const strokeWidth = document.getElementById('editStrokeWidth');
+        const fillOpacity = document.getElementById('editFillOpacity');
+        const noFill = document.getElementById('editNoFill');
+
+        if (strokeColor) this.selectedElement.setAttribute('stroke', strokeColor.value);
+        if (strokeWidth) this.selectedElement.setAttribute('stroke-width', strokeWidth.value);
+
+        if (noFill && noFill.checked) {
+            this.selectedElement.setAttribute('fill', 'none');
+            this.selectedElement.removeAttribute('fill-opacity');
+        } else {
+            if (fillColor) this.selectedElement.setAttribute('fill', fillColor.value);
+            if (fillOpacity) {
+                const opacity = fillOpacity.value / 100;
+                if (opacity < 1) {
+                    this.selectedElement.setAttribute('fill-opacity', opacity);
+                } else {
+                    this.selectedElement.removeAttribute('fill-opacity');
+                }
+            }
+        }
+
+        if (this.selectedElement.tagName === 'line' && this.selectedElement.getAttribute('marker-end')) {
+            const arrowhead = document.querySelector('#arrowhead polygon');
+            if (arrowhead && strokeColor) {
+                arrowhead.setAttribute('fill', strokeColor.value);
+            }
+        }
+
+        this.closeEditModal();
+        this.saveState(); // Guardar estado después de editar
+    }
+
+    deleteSelectedElement() {
+        if (this.selectedElement) {
+            this.selectedElement.remove();
+            this.clearSelection();
+            this.closeEditModal();
+            this.saveState(); // Guardar estado después de eliminar
+        }
+    }
+
+    moveToFront() {
+        if (this.selectedElement) {
+            this.svg.appendChild(this.selectedElement);
+            this.saveState(); // Guardar estado después de cambiar orden
+        }
+    }
+
+    moveToBack() {
+        if (this.selectedElement) {
+            const firstChild = this.svg.children[1];
+            if (firstChild) {
+                this.svg.insertBefore(this.selectedElement, firstChild);
+            }
+            this.saveState(); // Guardar estado después de cambiar orden
+        }
+    }
+
+    moveUp() {
+        if (this.selectedElement && this.selectedElement.nextElementSibling) {
+            this.svg.insertBefore(this.selectedElement.nextElementSibling, this.selectedElement);
+            this.saveState(); // Guardar estado después de cambiar orden
+        }
+    }
+
+    moveDown() {
+        if (this.selectedElement && this.selectedElement.previousElementSibling &&
+            this.selectedElement.previousElementSibling.tagName !== 'defs') {
+            this.svg.insertBefore(this.selectedElement, this.selectedElement.previousElementSibling);
+            this.saveState(); // Guardar estado después de cambiar orden
+        }
+    }
+
+    getMousePos(e) {
+        if (!this.svg) return { x: 0, y: 0 };
+        const rect = this.svg.getBoundingClientRect();
+        return {
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
+        };
+    }
+
+    getStrokeColor() {
+        const elem = document.getElementById('strokeColor');
+        return elem ? elem.value : '#000000';
+    }
+
+    getFillColor() {
+        const elem = document.getElementById('fillColor');
+        return elem ? elem.value : '#ffffff';
+    }
+
+    getFillOpacity() {
+        const elem = document.getElementById('fillOpacity');
+        return elem ? elem.value / 100 : 1;
+    }
+
+    getStrokeWidth() {
+        const elem = document.getElementById('strokeWidth');
+        return elem ? elem.value : '2';
+    }
+
+    startFreehand(pos) {
+        this.freehandPath = `M ${pos.x} ${pos.y}`;
+        this.currentElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        this.currentElement.setAttribute('d', this.freehandPath);
+        this.currentElement.setAttribute('stroke', this.getStrokeColor());
+        this.currentElement.setAttribute('stroke-width', this.getStrokeWidth());
+        this.currentElement.setAttribute('fill', 'none');
+        this.svg.appendChild(this.currentElement);
+    }
+
+    continueFreehand(pos) {
+        this.freehandPath += ` L ${pos.x} ${pos.y}`;
+        this.currentElement.setAttribute('d', this.freehandPath);
+    }
+
+    addPolylinePoint(pos) {
+        this.polylinePoints.push(pos);
+
+        if (this.polylinePoints.length === 1) {
+            this.currentElement = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+            this.currentElement.setAttribute('stroke', this.getStrokeColor());
+            this.currentElement.setAttribute('stroke-width', this.getStrokeWidth());
+            this.currentElement.setAttribute('fill', this.getFillColor());
+            const opacity = this.getFillOpacity();
+            if (opacity < 1) {
+                this.currentElement.setAttribute('fill-opacity', opacity);
+            }
+            this.svg.appendChild(this.currentElement);
+        }
+
+        const pointsStr = this.polylinePoints.map(p => `${p.x},${p.y}`).join(' ');
+        this.currentElement.setAttribute('points', pointsStr);
+
+        setTimeout(() => {
+            this.svg.addEventListener('dblclick', () => this.finishPolyline(), { once: true });
+        }, 100);
+    }
+
+    finishPolyline() {
+        if (this.polylinePoints.length > 0 && this.currentElement) {
+            this.currentElement.setAttribute('fill', this.getFillColor());
+            const opacity = this.getFillOpacity();
+            if (opacity < 1) {
+                this.currentElement.setAttribute('fill-opacity', opacity);
+            }
+            this.saveState(); // Guardar estado después de terminar polyline
+        }
+        this.polylinePoints = [];
+        this.currentElement = null;
+    }
+
+    startShape(pos) {
+        this.currentElement = this.createElement(this.currentTool);
+        this.svg.appendChild(this.currentElement);
+        this.updateShape(pos);
+    }
+
+    createElement(tool) {
+        const element = document.createElementNS('http://www.w3.org/2000/svg', this.getElementTag(tool));
+
+        element.setAttribute('stroke', this.getStrokeColor());
+        element.setAttribute('stroke-width', this.getStrokeWidth());
+
+        const opacity = this.getFillOpacity();
+
+        if (opacity > 0 && tool !== 'arrow') {
+            element.setAttribute('fill', this.getFillColor());
+            if (opacity < 1) {
+                element.setAttribute('fill-opacity', opacity);
+            }
+        } else {
+            element.setAttribute('fill', 'none');
+        }
+
+        if (tool === 'arrow') {
+            element.setAttribute('marker-end', 'url(#arrowhead)');
+            element.setAttribute('fill', 'none');
+            const arrowhead = document.querySelector('#arrowhead polygon');
+            if (arrowhead) {
+                arrowhead.setAttribute('fill', this.getStrokeColor());
+            }
+        }
+
+        return element;
+    }
+
+    getElementTag(tool) {
+        const tags = {
+            'rectangle': 'rect',
+            'circle': 'circle',
+            'triangle': 'polygon',
+            'hexagon': 'polygon',
+            'arrow': 'line'
+        };
+        return tags[tool] || 'rect';
+    }
+
+    updateShape(pos) {
+        if (!this.currentElement || !this.startPoint) return;
+
+        const dx = pos.x - this.startPoint.x;
+        const dy = pos.y - this.startPoint.y;
+
+        switch (this.currentTool) {
+            case 'rectangle':
+                this.updateRectangle(dx, dy);
+                break;
+            case 'circle':
+                this.updateCircle(dx, dy);
+                break;
+            case 'triangle':
+                this.updateTriangle(dx, dy);
+                break;
+            case 'hexagon':
+                this.updateHexagon(dx, dy);
+                break;
+            case 'arrow':
+                this.updateArrow(pos);
+                break;
+        }
+    }
+
+    updateRectangle(dx, dy) {
+        const x = dx < 0 ? this.startPoint.x + dx : this.startPoint.x;
+        const y = dy < 0 ? this.startPoint.y + dy : this.startPoint.y;
+        const width = Math.abs(dx);
+        const height = Math.abs(dy);
+
+        this.currentElement.setAttribute('x', x);
+        this.currentElement.setAttribute('y', y);
+        this.currentElement.setAttribute('width', width);
+        this.currentElement.setAttribute('height', height);
+    }
+
+    updateCircle(dx, dy) {
+        const radius = Math.sqrt(dx * dx + dy * dy) / 2;
+        const cx = this.startPoint.x + dx / 2;
+        const cy = this.startPoint.y + dy / 2;
+
+        this.currentElement.setAttribute('cx', cx);
+        this.currentElement.setAttribute('cy', cy);
+        this.currentElement.setAttribute('r', radius);
+    }
+
+    updateTriangle(dx, dy) {
+        const x1 = this.startPoint.x + dx / 2;
+        const y1 = this.startPoint.y;
+        const x2 = this.startPoint.x;
+        const y2 = this.startPoint.y + dy;
+        const x3 = this.startPoint.x + dx;
+        const y3 = this.startPoint.y + dy;
+
+        const points = `${x1},${y1} ${x2},${y2} ${x3},${y3}`;
+        this.currentElement.setAttribute('points', points);
+    }
+
+    updateHexagon(dx, dy) {
+        const centerX = this.startPoint.x + dx / 2;
+        const centerY = this.startPoint.y + dy / 2;
+        const radius = Math.min(Math.abs(dx), Math.abs(dy)) / 2;
+
+        const points = [];
+        for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            points.push(`${x},${y}`);
+        }
+
+        this.currentElement.setAttribute('points', points.join(' '));
+    }
+
+    updateArrow(pos) {
+        this.currentElement.setAttribute('x1', this.startPoint.x);
+        this.currentElement.setAttribute('y1', this.startPoint.y);
+        this.currentElement.setAttribute('x2', pos.x);
+        this.currentElement.setAttribute('y2', pos.y);
+
+        const arrowhead = document.querySelector('#arrowhead polygon');
+        if (arrowhead) {
+            arrowhead.setAttribute('fill', this.getStrokeColor());
+        }
+    }
+
+    clearCanvas() {
+        if (!this.svg) return;
+        
+        const elements = this.svg.querySelectorAll(':not(defs):not(marker)');
+        elements.forEach(el => {
+            if (el.tagName !== 'defs' && el.tagName !== 'marker') {
+                el.remove();
+            }
+        });
+        this.polylinePoints = [];
+        this.currentElement = null;
+        this.clearSelection();
+        this.copiedElement = null; // Limpiar elemento copiado también
+        this.saveState(); // Guardar estado después de limpiar
+    }
+
+    centerDrawing() {
+        if (!this.svg) return;
+        
+        const elements = Array.from(this.svg.children).filter(el =>
+            el.tagName !== 'defs' && el.tagName !== 'marker'
+        );
+
+        if (elements.length === 0) {
+            alert('No hay elementos para centrar');
+            return;
+        }
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+        elements.forEach(el => {
+            const bbox = this.getElementBounds(el);
+            if (bbox) {
+                minX = Math.min(minX, bbox.x);
+                minY = Math.min(minY, bbox.y);
+                maxX = Math.max(maxX, bbox.x + bbox.width);
+                maxY = Math.max(maxY, bbox.y + bbox.height);
+            }
+        });
+
+        const currentCenterX = (minX + maxX) / 2;
+        const currentCenterY = (minY + maxY) / 2;
+        const desiredCenterX = 250;
+        const desiredCenterY = 250;
+
+        const offsetX = desiredCenterX - currentCenterX;
+        const offsetY = desiredCenterY - currentCenterY;
+
+        elements.forEach(el => {
+            this.moveElement(el, offsetX, offsetY);
+        });
+
+        const btn = document.getElementById('centerDrawing');
+        if (btn) {
+            const originalText = btn.textContent;
+            btn.textContent = '✅ Centrado';
+            btn.style.background = 'linear-gradient(135deg, #00b894, #00a085)';
+
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.style.background = '';
+            }, 2000);
+        }
+
+        this.saveState(); // Guardar estado después de centrar
+    }
+
+    getElementBounds(element) {
+        try {
+            return element.getBBox();
+        } catch (e) {
+            switch (element.tagName) {
+                case 'rect':
+                    return {
+                        x: parseFloat(element.getAttribute('x') || 0),
+                        y: parseFloat(element.getAttribute('y') || 0),
+                        width: parseFloat(element.getAttribute('width') || 0),
+                        height: parseFloat(element.getAttribute('height') || 0)
+                    };
+                case 'circle':
+                    const cx = parseFloat(element.getAttribute('cx') || 0);
+                    const cy = parseFloat(element.getAttribute('cy') || 0);
+                    const r = parseFloat(element.getAttribute('r') || 0);
+                    return {
+                        x: cx - r,
+                        y: cy - r,
+                        width: r * 2,
+                        height: r * 2
+                    };
+                case 'line':
+                    const x1 = parseFloat(element.getAttribute('x1') || 0);
+                    const y1 = parseFloat(element.getAttribute('y1') || 0);
+                    const x2 = parseFloat(element.getAttribute('x2') || 0);
+                    const y2 = parseFloat(element.getAttribute('y2') || 0);
+                    return {
+                        x: Math.min(x1, x2),
+                        y: Math.min(y1, y2),
+                        width: Math.abs(x2 - x1),
+                        height: Math.abs(y2 - y1)
+                    };
+                default:
+                    return null;
+            }
+        }
+    }
+
+    showSVGCode() {
+        const modal = document.getElementById('svgModal');
+        const textarea = document.getElementById('svgCode');
+        
+        if (!modal || !textarea || !this.svg) return;
+
+        const adaptiveSizeBtn = document.getElementById('adaptiveSize');
+        const adaptiveSize = adaptiveSizeBtn && adaptiveSizeBtn.classList.contains('active');
+        let width, height;
+
+        if (adaptiveSize) {
+            width = '100%';
+            height = '100%';
+        } else {
+            const widthInput = document.getElementById('exportWidth');
+            const heightInput = document.getElementById('exportHeight');
+            width = (widthInput ? widthInput.value : '500') + 'px';
+            height = (heightInput ? heightInput.value : '500') + 'px';
+        }
+
+        const svgContent = this.svg.innerHTML;
+        const svgCode = `<svg width="${width}" height="${height}" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+${svgContent}
+</svg>`;
+        
+        if (this.idicnobootn) {
+            this.idicnobootn.innerHTML = "";
+            this.idicnobootn.innerHTML = svgCode;
+        }
+
+        textarea.value = svgCode;
+        modal.style.display = 'block';
+    }
+
+    copyToClipboard() {
+        const textarea = document.getElementById('svgCode');
+        if (!textarea) return;
+        
+        textarea.select();
+        document.execCommand('copy');
+
+        const btn = document.getElementById('copyCodeBtn');
+        if (btn) {
+            const originalText = btn.textContent;
+            btn.textContent = ' Copiado!';
+
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+    }
+
+    downloadSVG() {
+        if (!this.svg) return;
+        
+        const adaptiveSizeBtn = document.getElementById('adaptiveSize');
+        const adaptiveSize = adaptiveSizeBtn && adaptiveSizeBtn.classList.contains('active');
+        let width, height;
+
+        if (adaptiveSize) {
+            width = '100%';
+            height = '100%';
+        } else {
+            const widthInput = document.getElementById('exportWidth');
+            const heightInput = document.getElementById('exportHeight');
+            width = (widthInput ? widthInput.value : '500') + 'px';
+            height = (heightInput ? heightInput.value : '500') + 'px';
+        }
+
+        const svgContent = this.svg.innerHTML;
+        const svgCode = `<svg width="${width}" height="${height}" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+${svgContent}
+</svg>`;
+
+        const blob = new Blob([svgCode], { type: 'image/svg+xml' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'drawing.svg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new SVGDrawingTool();
+});
+
+
+
+
+
+
+    </script>
+</body>
+
+</html>
