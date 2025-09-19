@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -534,6 +535,15 @@ box-shadow: 1px 1px 18px 8px #A6A6A6;
                 <button class="tool-btn" data-tool="triangle">Triangle</button>
                 <button class="tool-btn" data-tool="hexagon">Hexagon</button>
                 <button class="tool-btn" data-tool="arrow">Arrow</button>
+                <button class="tool-btn" id="idlienarecta">lineRect</button>
+                <button class="tool-btn" id="npoligonos">npoligonos</button>
+                <button class="tool-btn" id="idgrilla">grid</button>
+
+                 
+
+                 
+               
+                 
             </div>
 
             <div class="tool-group">
@@ -659,9 +669,7 @@ box-shadow: 1px 1px 18px 8px #A6A6A6;
     <script> 
 
 
-
-
-class SVGDrawingTool {
+  class SVGDrawingTool {
     constructor() {
         this.svg = document.getElementById('drawingSVG');
         this.currentTool = 'freehand';
@@ -675,11 +683,12 @@ class SVGDrawingTool {
         this.dragStartPoint = null;
         this.elementStartPos = null;
         this.idicnobootn = document.getElementById("idicnobootn");
+        this.gridVisible = false;
+        this.gridGroup = null;
+        this.nLados = 5;
         
-        // Elemento copiado para funcionalidad de copiar/pegar
         this.copiedElement = null;
         
-        // Sistema de historial para deshacer/rehacer
         this.history = [];
         this.historyStep = -1;
         this.maxHistorySteps = 30;
@@ -687,21 +696,97 @@ class SVGDrawingTool {
         
         this.setupEventListeners();
         this.setupOpacitySlider();
-        this.saveState(); // Guardar estado inicial
+        this.createGrid();
+        this.saveState();
     }
 
-    // Métodos para manejo del historial
+    createGrid() {
+        this.gridGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        this.gridGroup.id = 'grid-group';
+        this.gridGroup.style.display = 'none';
+        
+        const gridPattern = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+        pattern.setAttribute('id', 'gridPattern');
+        pattern.setAttribute('width', '20');
+        pattern.setAttribute('height', '20');
+        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+        
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('width', '20');
+        rect.setAttribute('height', '20');
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('stroke', '#000000');
+        rect.setAttribute('stroke-width', '0.5');
+        rect.setAttribute('stroke-dasharray', '2,2');
+        rect.setAttribute('opacity', '0.3');
+        
+        pattern.appendChild(rect);
+        gridPattern.appendChild(pattern);
+        
+        const gridRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        gridRect.setAttribute('width', '500');
+        gridRect.setAttribute('height', '500');
+        gridRect.setAttribute('fill', 'url(#gridPattern)');
+        
+        const centerLineV = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        centerLineV.setAttribute('x1', '250');
+        centerLineV.setAttribute('y1', '0');
+        centerLineV.setAttribute('x2', '250');
+        centerLineV.setAttribute('y2', '500');
+        centerLineV.setAttribute('stroke', '#000000');
+        centerLineV.setAttribute('stroke-width', '1');
+        centerLineV.setAttribute('stroke-dasharray', '4,4');
+        centerLineV.setAttribute('opacity', '0.5');
+        
+        const centerLineH = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        centerLineH.setAttribute('x1', '0');
+        centerLineH.setAttribute('y1', '250');
+        centerLineH.setAttribute('x2', '500');
+        centerLineH.setAttribute('y2', '250');
+        centerLineH.setAttribute('stroke', '#000000');
+        centerLineH.setAttribute('stroke-width', '1');
+        centerLineH.setAttribute('stroke-dasharray', '4,4');
+        centerLineH.setAttribute('opacity', '0.5');
+        
+        this.gridGroup.appendChild(gridPattern);
+        this.gridGroup.appendChild(gridRect);
+        this.gridGroup.appendChild(centerLineV);
+        this.gridGroup.appendChild(centerLineH);
+        
+        if (this.svg) {
+            this.svg.insertBefore(this.gridGroup, this.svg.firstChild);
+        }
+    }
+
+    toggleGrid() {
+        this.gridVisible = !this.gridVisible;
+        if (this.gridGroup) {
+            this.gridGroup.style.display = this.gridVisible ? 'block' : 'none';
+        }
+        
+        const btn = document.getElementById('idgrilla');
+        if (btn) {
+            btn.style.background = this.gridVisible ? 'linear-gradient(135deg, #999999, #999999)' : '';
+            btn.style.color = this.gridVisible ? 'white' : '';
+        }
+    }
+
+    isDrawableElement(element) {
+        return element.tagName && 
+               ['rect', 'circle', 'line', 'polygon', 'polyline', 'path'].includes(element.tagName) && 
+               element.id !== 'grid-group' && 
+               !element.closest('#grid-group');
+    }
+
     saveState() {
         if (this.isPerformingHistoryAction) return;
         
-        // Remover pasos futuros si estamos en el medio del historial
         this.history = this.history.slice(0, this.historyStep + 1);
         
-        // Guardar el estado actual del SVG
         const svgContent = this.svg.innerHTML;
         this.history.push(svgContent);
         
-        // Mantener solo los últimos maxHistorySteps pasos
         if (this.history.length > this.maxHistorySteps) {
             this.history.shift();
         } else {
@@ -709,7 +794,6 @@ class SVGDrawingTool {
         }
         
         this.updateUndoRedoButtons();
-        console.log('Estado guardado. Historial:', this.history.length, 'Paso actual:', this.historyStep);
     }
 
     undo() {
@@ -717,9 +801,6 @@ class SVGDrawingTool {
             this.historyStep--;
             this.restoreState(this.history[this.historyStep]);
             this.updateUndoRedoButtons();
-            console.log('Deshacer ejecutado. Paso actual:', this.historyStep);
-        } else {
-            console.log('No hay más pasos para deshacer');
         }
     }
 
@@ -728,9 +809,6 @@ class SVGDrawingTool {
             this.historyStep++;
             this.restoreState(this.history[this.historyStep]);
             this.updateUndoRedoButtons();
-            console.log('Rehacer ejecutado. Paso actual:', this.historyStep);
-        } else {
-            console.log('No hay más pasos para rehacer');
         }
     }
 
@@ -738,6 +816,10 @@ class SVGDrawingTool {
         this.isPerformingHistoryAction = true;
         this.clearSelection();
         this.svg.innerHTML = svgContent;
+        this.createGrid();
+        if (this.gridVisible) {
+            this.gridGroup.style.display = 'block';
+        }
         this.isPerformingHistoryAction = false;
     }
 
@@ -756,64 +838,38 @@ class SVGDrawingTool {
         }
     }
 
-    // Métodos para copiar y pegar
     copyElement() {
         if (this.selectedElement) {
-            // Clonar el elemento seleccionado
             this.copiedElement = this.selectedElement.cloneNode(true);
-            console.log('Elemento copiado:', this.copiedElement.tagName);
-            
-            // Feedback visual
-            this.showCopyFeedback();
-        } else {
-            console.log('No hay elemento seleccionado para copiar');
+            this.showFeedback('Elemento copiado (Ctrl+C)', '#4CAF50');
         }
     }
 
     pasteElement() {
         if (this.copiedElement) {
-            // Clonar el elemento copiado para crear una nueva instancia
             const newElement = this.copiedElement.cloneNode(true);
-            
-            // Remover la clase de selección si existe
             newElement.classList.remove('element-selected');
-            
-            // Desplazar ligeramente el elemento pegado para que sea visible
             this.offsetPastedElement(newElement);
-            
-            // Añadir el elemento al SVG
             this.svg.appendChild(newElement);
-            
-            // Seleccionar el elemento recién pegado
             this.selectElement(newElement);
-            
-            // Guardar estado
             this.saveState();
-            
-            console.log('Elemento pegado:', newElement.tagName);
-            
-            // Feedback visual
-            this.showPasteFeedback();
-        } else {
-            console.log('No hay elemento copiado para pegar');
+            this.showFeedback('Elemento pegado (Ctrl+V)', '#2196F3');
         }
     }
 
     offsetPastedElement(element) {
-        // Desplazar el elemento 20px hacia abajo y derecha para que sea visible
         const offset = 20;
         this.moveElement(element, offset, offset);
     }
 
-    showCopyFeedback() {
-        // Crear feedback visual temporal para copiar
+    showFeedback(message, color) {
         const feedback = document.createElement('div');
-        feedback.textContent = 'Elemento copiado (Ctrl+C)';
+        feedback.textContent = message;
         feedback.style.cssText = `
             position: fixed;
             top: 20px;
             right: 20px;
-            background: #4CAF50;
+            background: ${color};
             color: white;
             padding: 8px 16px;
             border-radius: 4px;
@@ -825,46 +881,8 @@ class SVGDrawingTool {
         `;
         
         document.body.appendChild(feedback);
-        
-        // Animar entrada
         setTimeout(() => feedback.style.opacity = '1', 10);
         
-        // Remover después de 2 segundos
-        setTimeout(() => {
-            feedback.style.opacity = '0';
-            setTimeout(() => {
-                if (feedback.parentNode) {
-                    document.body.removeChild(feedback);
-                }
-            }, 300);
-        }, 2000);
-    }
-
-    showPasteFeedback() {
-        // Crear feedback visual temporal para pegar
-        const feedback = document.createElement('div');
-        feedback.textContent = 'Elemento pegado (Ctrl+V)';
-        feedback.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #2196F3;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            font-size: 14px;
-            z-index: 10000;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        `;
-        
-        document.body.appendChild(feedback);
-        
-        // Animar entrada
-        setTimeout(() => feedback.style.opacity = '1', 10);
-        
-        // Remover después de 2 segundos
         setTimeout(() => {
             feedback.style.opacity = '0';
             setTimeout(() => {
@@ -890,7 +908,6 @@ class SVGDrawingTool {
     }
 
     setupEventListeners() {
-        // Eventos de herramientas
         document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const activeBtn = document.querySelector('.tool-btn.active');
@@ -902,7 +919,6 @@ class SVGDrawingTool {
             });
         });
 
-        // Botones principales
         const clearBtn = document.getElementById('clearCanvas');
         if (clearBtn) clearBtn.addEventListener('click', () => this.clearCanvas());
 
@@ -915,15 +931,47 @@ class SVGDrawingTool {
         const centerBtn = document.getElementById('centerDrawing');
         if (centerBtn) centerBtn.addEventListener('click', () => this.centerDrawing());
 
-        // Botones de deshacer/rehacer
         const undoBtn = document.getElementById('undoBtn');
-        if (undoBtn) {
-            undoBtn.addEventListener('click', () => this.undo());
-        }
+        if (undoBtn) undoBtn.addEventListener('click', () => this.undo());
 
         const redoBtn = document.getElementById('redoBtn');
-        if (redoBtn) {
-            redoBtn.addEventListener('click', () => this.redo());
+        if (redoBtn) redoBtn.addEventListener('click', () => this.redo());
+
+        const lineaRectaBtn = document.getElementById('idlienarecta');
+        if (lineaRectaBtn) {
+            lineaRectaBtn.addEventListener('click', () => {
+                const activeBtn = document.querySelector('.tool-btn.active');
+                if (activeBtn) activeBtn.classList.remove('active');
+                lineaRectaBtn.classList.add('active');
+                this.currentTool = 'linea-recta';
+                this.finishPolyline();
+                this.clearSelection();
+            });
+        }
+
+        const npoligonosBtn = document.getElementById('npoligonos');
+        if (npoligonosBtn) {
+            npoligonosBtn.addEventListener('click', () => {
+                const lados = prompt('¿Cuántos lados debe tener el polígono?', '5');
+                const numLados = parseInt(lados);
+                
+                if (numLados && numLados >= 3 && numLados <= 20) {
+                    const activeBtn = document.querySelector('.tool-btn.active');
+                    if (activeBtn) activeBtn.classList.remove('active');
+                    npoligonosBtn.classList.add('active');
+                    this.currentTool = 'n-poligono';
+                    this.nLados = numLados;
+                    this.finishPolyline();
+                    this.clearSelection();
+                } else if (lados !== null) {
+                    alert('Por favor ingresa un número válido entre 3 y 20');
+                }
+            });
+        }
+
+        const grillaBtn = document.getElementById('idgrilla');
+        if (grillaBtn) {
+            grillaBtn.addEventListener('click', () => this.toggleGrid());
         }
 
         const noFillBtn = document.getElementById('noFill');
@@ -947,7 +995,6 @@ class SVGDrawingTool {
 
                 if (btn.classList.contains('active')) {
                     btn.classList.remove('active');
-                    btn.textContent = '100%';
                     if (widthInput) {
                         widthInput.disabled = false;
                         widthInput.style.opacity = '1';
@@ -958,7 +1005,6 @@ class SVGDrawingTool {
                     }
                 } else {
                     btn.classList.add('active');
-                    btn.textContent = '100%';
                     if (widthInput) {
                         widthInput.disabled = true;
                         widthInput.style.opacity = '0.5';
@@ -971,7 +1017,6 @@ class SVGDrawingTool {
             });
         }
 
-        // Botones de capas
         const moveToFrontBtn = document.getElementById('moveToFront');
         if (moveToFrontBtn) moveToFrontBtn.addEventListener('click', () => this.moveToFront());
 
@@ -984,7 +1029,6 @@ class SVGDrawingTool {
         const moveDownBtn = document.getElementById('moveDown');
         if (moveDownBtn) moveDownBtn.addEventListener('click', () => this.moveDown());
 
-        // Botones de edición
         const saveEditBtn = document.getElementById('saveEdit');
         if (saveEditBtn) saveEditBtn.addEventListener('click', () => this.saveElementEdit());
 
@@ -994,7 +1038,6 @@ class SVGDrawingTool {
         const deleteElementBtn = document.getElementById('deleteElement');
         if (deleteElementBtn) deleteElementBtn.addEventListener('click', () => this.deleteSelectedElement());
 
-        // Sliders de edición
         const editFillOpacity = document.getElementById('editFillOpacity');
         if (editFillOpacity) {
             editFillOpacity.addEventListener('input', (e) => {
@@ -1020,7 +1063,6 @@ class SVGDrawingTool {
             });
         }
 
-        // Eventos de modales
         const closeModalBtn = document.getElementById('closeModal');
         if (closeModalBtn) {
             closeModalBtn.addEventListener('click', () => {
@@ -1052,7 +1094,6 @@ class SVGDrawingTool {
             });
         }
 
-        // Eventos del SVG
         if (this.svg) {
             this.svg.addEventListener('mousedown', (e) => this.handleMouseDown(e));
             this.svg.addEventListener('mousemove', (e) => this.handleMouseMove(e));
@@ -1061,54 +1102,37 @@ class SVGDrawingTool {
             this.svg.addEventListener('contextmenu', (e) => e.preventDefault());
         }
 
-        // EVENTOS DE TECLADO MEJORADOS
         document.addEventListener('keydown', (e) => {
-            console.log('Tecla presionada:', e.key, 'Ctrl:', e.ctrlKey, 'Shift:', e.shiftKey);
-            
-            // Prevenir comportamientos por defecto en campos de texto
             const isInInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
             
-            // Ctrl+Z para deshacer
             if (e.ctrlKey && e.key.toLowerCase() === 'z' && !e.shiftKey) {
                 e.preventDefault();
-                if (!isInInput) {
-                    this.undo();
-                    console.log('Ejecutando deshacer');
-                }
+                if (!isInInput) this.undo();
                 return;
             }
             
-            // Ctrl+Y o Ctrl+Shift+Z para rehacer
             if ((e.ctrlKey && e.key.toLowerCase() === 'y') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'z')) {
                 e.preventDefault();
-                if (!isInInput) {
-                    this.redo();
-                    console.log('Ejecutando rehacer');
-                }
+                if (!isInInput) this.redo();
                 return;
             }
             
-            // Ctrl+C para copiar elemento seleccionado
             if (e.ctrlKey && e.key.toLowerCase() === 'c') {
                 if (!isInInput && this.selectedElement) {
                     e.preventDefault();
                     this.copyElement();
-                    console.log('Ejecutando copiar');
                 }
                 return;
             }
             
-            // Ctrl+V para pegar elemento copiado
             if (e.ctrlKey && e.key.toLowerCase() === 'v') {
                 if (!isInInput && this.copiedElement) {
                     e.preventDefault();
                     this.pasteElement();
-                    console.log('Ejecutando pegar');
                 }
                 return;
             }
             
-            // Escape para limpiar selección y cerrar modal
             if (e.key === 'Escape') {
                 this.clearSelection();
                 this.closeEditModal();
@@ -1118,19 +1142,16 @@ class SVGDrawingTool {
                 }
             }
             
-            // Delete para eliminar elemento seleccionado
             if (e.key === 'Delete' && this.selectedElement && !isInInput) {
                 e.preventDefault();
                 this.deleteSelectedElement();
             }
         });
         
-        // Agregar estilos CSS para la cruceta y elementos seleccionados
         this.addCustomStyles();
     }
     
     addCustomStyles() {
-        // Crear estilos CSS personalizados si no existen
         if (!document.getElementById('svg-drawing-styles')) {
             const style = document.createElement('style');
             style.id = 'svg-drawing-styles';
@@ -1148,7 +1169,6 @@ class SVGDrawingTool {
                     transition: cursor 0.1s ease;
                 }
                 
-                /* Cursor de cruceta personalizado para mover elementos */
                 .moving-element {
                     cursor: move !important;
                 }
@@ -1161,16 +1181,13 @@ class SVGDrawingTool {
         const pos = this.getMousePos(e);
         const target = e.target;
 
-        // Si hacemos clic en un elemento dibujable, lo seleccionamos
         if (target !== this.svg && this.isDrawableElement(target)) {
             e.preventDefault();
-            console.log('Elemento seleccionado:', target.tagName, target);
             this.selectElement(target);
             this.startDragging(pos, target);
             return;
         }
 
-        // Si hacemos clic en el área vacía, limpiamos la selección
         this.clearSelection();
         this.startPoint = pos;
 
@@ -1209,7 +1226,7 @@ class SVGDrawingTool {
     handleMouseUp() {
         if (this.isDragging) {
             this.stopDragging();
-            this.saveState(); // Guardar estado después de mover elemento
+            this.saveState();
             return;
         }
 
@@ -1217,7 +1234,7 @@ class SVGDrawingTool {
 
         this.isDrawing = false;
         this.currentElement = null;
-        this.saveState(); // Guardar estado después de crear elemento
+        this.saveState();
     }
 
     handleDoubleClick(e) {
@@ -1227,10 +1244,6 @@ class SVGDrawingTool {
             this.selectElement(target);
             this.openEditModal(target);
         }
-    }
-
-    isDrawableElement(element) {
-        return element.tagName && ['rect', 'circle', 'line', 'polygon', 'polyline', 'path'].includes(element.tagName);
     }
 
     selectElement(element) {
@@ -1296,6 +1309,27 @@ class SVGDrawingTool {
                     x: parseFloat(element.getAttribute('x1') || 0),
                     y: parseFloat(element.getAttribute('y1') || 0)
                 };
+            case 'polygon':
+            case 'polyline':
+                const points = element.getAttribute('points');
+                if (points) {
+                    const firstPoint = points.split(' ')[0].split(',');
+                    return {
+                        x: parseFloat(firstPoint[0] || 0),
+                        y: parseFloat(firstPoint[1] || 0)
+                    };
+                }
+                return { x: 0, y: 0 };
+            case 'path':
+                try {
+                    const bbox = element.getBBox();
+                    return {
+                        x: bbox.x,
+                        y: bbox.y
+                    };
+                } catch (e) {
+                    return { x: 0, y: 0 };
+                }
             default:
                 return { x: 0, y: 0 };
         }
@@ -1420,7 +1454,7 @@ class SVGDrawingTool {
         }
 
         this.closeEditModal();
-        this.saveState(); // Guardar estado después de editar
+        this.saveState();
     }
 
     deleteSelectedElement() {
@@ -1428,14 +1462,14 @@ class SVGDrawingTool {
             this.selectedElement.remove();
             this.clearSelection();
             this.closeEditModal();
-            this.saveState(); // Guardar estado después de eliminar
+            this.saveState();
         }
     }
 
     moveToFront() {
         if (this.selectedElement) {
             this.svg.appendChild(this.selectedElement);
-            this.saveState(); // Guardar estado después de cambiar orden
+            this.saveState();
         }
     }
 
@@ -1445,14 +1479,14 @@ class SVGDrawingTool {
             if (firstChild) {
                 this.svg.insertBefore(this.selectedElement, firstChild);
             }
-            this.saveState(); // Guardar estado después de cambiar orden
+            this.saveState();
         }
     }
 
     moveUp() {
         if (this.selectedElement && this.selectedElement.nextElementSibling) {
             this.svg.insertBefore(this.selectedElement.nextElementSibling, this.selectedElement);
-            this.saveState(); // Guardar estado después de cambiar orden
+            this.saveState();
         }
     }
 
@@ -1460,7 +1494,7 @@ class SVGDrawingTool {
         if (this.selectedElement && this.selectedElement.previousElementSibling &&
             this.selectedElement.previousElementSibling.tagName !== 'defs') {
             this.svg.insertBefore(this.selectedElement, this.selectedElement.previousElementSibling);
-            this.saveState(); // Guardar estado después de cambiar orden
+            this.saveState();
         }
     }
 
@@ -1538,7 +1572,7 @@ class SVGDrawingTool {
             if (opacity < 1) {
                 this.currentElement.setAttribute('fill-opacity', opacity);
             }
-            this.saveState(); // Guardar estado después de terminar polyline
+            this.saveState();
         }
         this.polylinePoints = [];
         this.currentElement = null;
@@ -1558,7 +1592,7 @@ class SVGDrawingTool {
 
         const opacity = this.getFillOpacity();
 
-        if (opacity > 0 && tool !== 'arrow') {
+        if (opacity > 0 && tool !== 'arrow' && tool !== 'linea-recta') {
             element.setAttribute('fill', this.getFillColor());
             if (opacity < 1) {
                 element.setAttribute('fill-opacity', opacity);
@@ -1585,7 +1619,9 @@ class SVGDrawingTool {
             'circle': 'circle',
             'triangle': 'polygon',
             'hexagon': 'polygon',
-            'arrow': 'line'
+            'arrow': 'line',
+            'linea-recta': 'line',
+            'n-poligono': 'polygon'
         };
         return tags[tool] || 'rect';
     }
@@ -1611,6 +1647,12 @@ class SVGDrawingTool {
                 break;
             case 'arrow':
                 this.updateArrow(pos);
+                break;
+            case 'linea-recta':
+                this.updateLineaRecta(pos);
+                break;
+            case 'n-poligono':
+                this.updateNPoligono(dx, dy);
                 break;
         }
     }
@@ -1665,6 +1707,29 @@ class SVGDrawingTool {
         this.currentElement.setAttribute('points', points.join(' '));
     }
 
+    updateNPoligono(dx, dy) {
+        const centerX = this.startPoint.x + dx / 2;
+        const centerY = this.startPoint.y + dy / 2;
+        const radius = Math.min(Math.abs(dx), Math.abs(dy)) / 2;
+
+        const points = [];
+        for (let i = 0; i < this.nLados; i++) {
+            const angle = (i * 2 * Math.PI) / this.nLados - Math.PI / 2;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            points.push(`${x},${y}`);
+        }
+
+        this.currentElement.setAttribute('points', points.join(' '));
+    }
+
+    updateLineaRecta(pos) {
+        this.currentElement.setAttribute('x1', this.startPoint.x);
+        this.currentElement.setAttribute('y1', this.startPoint.y);
+        this.currentElement.setAttribute('x2', pos.x);
+        this.currentElement.setAttribute('y2', pos.y);
+    }
+
     updateArrow(pos) {
         this.currentElement.setAttribute('x1', this.startPoint.x);
         this.currentElement.setAttribute('y1', this.startPoint.y);
@@ -1680,24 +1745,24 @@ class SVGDrawingTool {
     clearCanvas() {
         if (!this.svg) return;
         
-        const elements = this.svg.querySelectorAll(':not(defs):not(marker)');
+        const elements = this.svg.querySelectorAll(':not(defs):not(marker):not(g)');
         elements.forEach(el => {
-            if (el.tagName !== 'defs' && el.tagName !== 'marker') {
+            if (el.tagName !== 'defs' && el.tagName !== 'marker' && el.id !== 'grid-group') {
                 el.remove();
             }
         });
         this.polylinePoints = [];
         this.currentElement = null;
         this.clearSelection();
-        this.copiedElement = null; // Limpiar elemento copiado también
-        this.saveState(); // Guardar estado después de limpiar
+        this.copiedElement = null;
+        this.saveState();
     }
 
     centerDrawing() {
         if (!this.svg) return;
         
         const elements = Array.from(this.svg.children).filter(el =>
-            el.tagName !== 'defs' && el.tagName !== 'marker'
+            el.tagName !== 'defs' && el.tagName !== 'marker' && el.id !== 'grid-group'
         );
 
         if (elements.length === 0) {
@@ -1732,8 +1797,8 @@ class SVGDrawingTool {
         const btn = document.getElementById('centerDrawing');
         if (btn) {
             const originalText = btn.textContent;
-            btn.textContent = '✅ Centrado';
-            btn.style.background = 'linear-gradient(135deg, #00b894, #00a085)';
+            btn.textContent = 'Centrado';
+            btn.style.background = 'linear-gradient(135deg, #999999, #999999)';
 
             setTimeout(() => {
                 btn.textContent = originalText;
@@ -1741,7 +1806,7 @@ class SVGDrawingTool {
             }, 2000);
         }
 
-        this.saveState(); // Guardar estado después de centrar
+        this.saveState();
     }
 
     getElementBounds(element) {
@@ -1873,10 +1938,6 @@ ${svgContent}
 document.addEventListener('DOMContentLoaded', () => {
     new SVGDrawingTool();
 });
-
-
-
-
 
 
     </script>
